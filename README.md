@@ -25,7 +25,24 @@ Set the corresponding values in `.env.wiz-rootly`:
 - `ROOTLY_WEBHOOK_URL`
 - Optional: `ROOTLY_WEBHOOK_AUTH_HEADER` + `ROOTLY_WEBHOOK_AUTH_VALUE`
 
-## 2) Configure
+## 2) Map Rootly Fields (Required)
+
+After creating the Generic Webhook source, configure field mappings so alerts show real titles (not generic `Alert`).
+
+In Rootly, open the source and set:
+
+- `Fields -> Title`: `{{ alert.data.title }}`
+- `Fields -> Description`: `{{ alert.data.description }}`
+- `Urgency`: `{{ alert.data.urgency }}`
+
+Then save the source.
+
+Important:
+
+- These mappings apply to newly created alerts after saving.
+- Older alerts may still display the old title.
+
+## 3) Configure
 
 Copy the example env file and fill in values:
 
@@ -41,7 +58,7 @@ source .env.wiz-rootly
 set +a
 ```
 
-## 3) Dry run
+## 4) Dry run
 
 This prints the payloads instead of calling Rootly:
 
@@ -49,7 +66,7 @@ This prints the payloads instead of calling Rootly:
 python3 wiz_to_rootly.py --once --dry-run
 ```
 
-## 4) Live run
+## 5) Live run
 
 Single cycle:
 
@@ -62,6 +79,15 @@ Continuous poller:
 ```bash
 python3 wiz_to_rootly.py
 ```
+
+## 6) Route Alerts in Rootly
+
+If you use in-app routing, add a rule in `Alerts -> Routes` to page the right destination.
+
+Example rule:
+
+- Condition: `Urgency is High` (Rootly requires at least one condition)
+- Route to: your user, team, or escalation policy
 
 ## Notes
 
