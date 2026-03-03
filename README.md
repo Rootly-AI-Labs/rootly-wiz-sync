@@ -4,7 +4,28 @@
 
 Default query path follows the WIN quickstart (`issues(...)`), which requires `read:issues`.
 
-## 1) Configure
+## 1) Create Rootly Alert Source (Required)
+
+In Rootly, create a **Generic Webhook Alert Source** first. This bridge sends events to that incoming endpoint.
+
+Navigation path in Rootly:
+
+- `Alerts` (left panel) -> `Sources` -> `+ New Source` -> `Generic Webhook`
+
+Use one of these forms from Rootly setup:
+
+- URL with secret query param:
+  - `https://webhooks.rootly.com/webhooks/incoming/generic_webhooks?secret=...`
+- URL + Authorization header:
+  - URL: `https://webhooks.rootly.com/webhooks/incoming/generic_webhooks`
+  - Header: `Authorization: Bearer <secret>`
+
+Set the corresponding values in `.env.wiz-rootly`:
+
+- `ROOTLY_WEBHOOK_URL`
+- Optional: `ROOTLY_WEBHOOK_AUTH_HEADER` + `ROOTLY_WEBHOOK_AUTH_VALUE`
+
+## 2) Configure
 
 Copy the example env file and fill in values:
 
@@ -20,7 +41,7 @@ source .env.wiz-rootly
 set +a
 ```
 
-## 2) Dry run
+## 3) Dry run
 
 This prints the payloads instead of calling Rootly:
 
@@ -28,7 +49,7 @@ This prints the payloads instead of calling Rootly:
 python3 wiz_to_rootly.py --once --dry-run
 ```
 
-## 3) Live run
+## 4) Live run
 
 Single cycle:
 
