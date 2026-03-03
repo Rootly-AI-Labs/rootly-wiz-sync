@@ -37,6 +37,13 @@ In Rootly, open the source and set:
 
 Then save the source.
 
+Current bridge field behavior:
+
+- `title` is built from Wiz control/title and now appends resource + short issue ID.
+  - Example: `Secrets not stored in a secret container (Private Key) [feea4f03]`
+- `description` is `Wiz reported a <TYPE> item with <SEVERITY> severity.`
+- `urgency` maps from Wiz severity (for example, `HIGH` -> `High`).
+
 Important:
 
 - These mappings apply to newly created alerts after saving.
