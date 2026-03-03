@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local runtime state
+.wiz_rootly_seen_ids*.json
+
+# Local env files (keep example)
+.env*
+!.env.wiz-rootly.example
+
+# Local docs/artifacts
+*.pdf
