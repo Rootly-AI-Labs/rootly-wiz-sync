@@ -87,7 +87,21 @@ Continuous poller:
 python3 wiz_to_rootly.py
 ```
 
-## 6) Route Alerts in Rootly
+## 6) Production Scheduling (Recommended)
+
+For most customers, the most efficient setup is a scheduled `--once` run (not a long-running poller).
+
+- Recommended cadence: once per day
+- Keep `WIZ_STATE_FILE` persistent so dedupe works across runs
+- Use continuous mode only if you need near-real-time forwarding
+
+Example cron (daily at 9:00 AM):
+
+```bash
+0 9 * * * cd /path/to/Rootly-Wiz-Bridge && set -a && source .env.wiz-rootly && set +a && python3 wiz_to_rootly.py --once >> wiz_rootly.log 2>&1
+```
+
+## 7) Route Alerts in Rootly
 
 If you use in-app routing, add a rule in `Alerts -> Routes` to page the right destination.
 
