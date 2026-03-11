@@ -6,12 +6,24 @@ from typing import Any
 
 from .config import Config
 from .http_client import http_json
+from .state import is_resolved_status, item_status
 from .utils import now_iso
 
 
-def to_rootly_payload(item: dict[str, Any], event_id: str) -> dict[str, Any]:
+def to_rootly_payload(cfg: Config, item: dict[str, Any], event_id: str) -> dict[str, Any]:
     source_rule = item.get("sourceRule") or {}
+    source_rules = item.get("sourceRules") or []
+    first_source_rule = source_rule if isinstance(source_rule, dict) else {}
+    if not first_source_rule and isinstance(source_rules, list):
+        for candidate in source_rules:
+            if isinstance(candidate, dict):
+                first_source_rule = candidate
+                break
     control = item.get("control") or {}
+    if not control and isinstance(first_source_rule, dict):
+        nested_control = first_source_rule.get("control")
+        if isinstance(nested_control, dict):
+            control = nested_control
     entity = item.get("entitySnapshot") or {}
     projects = item.get("projects") or []
     project_names: list[str] = []
@@ -28,6 +40,7 @@ def to_rootly_payload(item: dict[str, Any], event_id: str) -> dict[str, Any]:
 
     base_title = (
         item.get("title")
+        or (first_source_rule.get("name") if isinstance(first_source_rule, dict) else None)
         or (control.get("name") if isinstance(control, dict) else None)
         or item.get("name")
         or "Wiz security alert"
@@ -42,18 +55,31 @@ def to_rootly_payload(item: dict[str, Any], event_id: str) -> dict[str, Any]:
     item_type = item.get("type") or "ISSUE"
     severity = item.get("severity") or "unknown"
     created_at = item.get("createdAt") or now_iso()
-    status = item.get("status") or "OPEN"
-    rule_name = source_rule.get("name") if isinstance(source_rule, dict) else None
+    updated_at = item.get("updatedAt") or created_at
+    resolved_at = item.get("resolvedAt") or updated_at
+    status = item_status(item)
+    resolved = is_resolved_status(cfg, status)
+    rule_name = first_source_rule.get("name") if isinstance(first_source_rule, dict) else None
     if not rule_name and isinstance(control, dict):
         rule_name = control.get("name")
-    summary = f"Wiz reported a {item_type} item with {severity} severity."
+    if resolved:
+        summary = f"Wiz marked a {item_type} item as {status}."
+    else:
+        summary = f"Wiz reported a {item_type} item with {severity} severity."
     urgency = str(severity).capitalize()
 
     return {
         "source": "wiz",
         "event_type": "wiz.security.alert",
+        "event_action": "resolved" if resolved else "opened",
         "event_id": event_id,
+        "dedupe_key": event_id,
         "timestamp": now_iso(),
+        "status": str(status),
+        "resolved": resolved,
+        "created_at": str(created_at),
+        "updated_at": str(updated_at),
+        "resolved_at": str(resolved_at) if resolved else None,
         # Top-level fields help Rootly Generic Webhook map alert metadata directly.
         "title": str(title),
         "description": summary,
@@ -64,6 +90,10 @@ def to_rootly_payload(item: dict[str, Any], event_id: str) -> dict[str, Any]:
             "severity": str(severity),
             "status": str(status),
             "detected_at": str(created_at),
+            "updated_at": str(updated_at),
+            "resolved": resolved,
+            "resolved_at": str(resolved_at) if resolved else None,
+            "dedupe_key": event_id,
             "category": str(item_type),
             "rule_name": str(rule_name) if rule_name else None,
             "resource": {
@@ -87,4 +117,11 @@ def post_to_rootly(cfg: Config, payload: dict[str, Any]) -> None:
         payload=payload,
         headers=headers,
         timeout_secs=cfg.request_timeout_secs,
+        max_retries=cfg.rootly_max_retries,
+        retry_base_secs=cfg.rootly_retry_base_secs,
+        retry_max_secs=cfg.rootly_retry_max_secs,
+        retry_on_statuses={429, 500, 502, 503, 504},
+        throttle_per_sec=cfg.rootly_max_rps,
+        throttle_key="rootly",
+        request_label="rootly webhook request",
     )
