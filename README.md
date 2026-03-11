@@ -1,7 +1,5 @@
 <p align="center">
-  <img src="assets/wiz-logo.svg" alt="Wiz" height="52" />
-  <span>&nbsp;&nbsp;to&nbsp;&nbsp;</span>
-  <img src="assets/rootly-logo.png" alt="Rootly" height="52" />
+  <img src="assets/wiz-rootly-banner.svg" alt="Wiz Rootly Sync banner" width="100%" />
 </p>
 
 # Wiz Rootly Sync
