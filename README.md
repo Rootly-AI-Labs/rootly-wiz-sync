@@ -49,8 +49,8 @@ python3 wiz_to_rootly.py sync --dry-run
 python3 wiz_to_rootly.py sync
 ```
 
-`sync --dry-run` prints the Rootly payloads without sending them.
-`sync` sends live updates to Rootly.
+`sync --dry-run` prints the Rootly webhook payloads generated from Wiz issues without sending them.
+`sync` sends those payloads live to Rootly.
 
 `python3 wiz_to_rootly.py` defaults to `sync`.
 `python3 wiz_to_rootly.py run` starts the continuous poller.
