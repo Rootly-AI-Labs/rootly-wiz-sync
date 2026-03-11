@@ -40,12 +40,17 @@ Optional flags:
 python3 wiz_to_rootly.py validate
 ```
 
+Checks that the local config is ready and tells you the next command to run.
+
 ### Sync
 
 ```bash
 python3 wiz_to_rootly.py sync --dry-run
 python3 wiz_to_rootly.py sync
 ```
+
+`sync --dry-run` prints the Rootly payloads without sending them.
+`sync` sends live updates to Rootly.
 
 `python3 wiz_to_rootly.py` defaults to `sync`.
 `python3 wiz_to_rootly.py run` starts the continuous poller.
