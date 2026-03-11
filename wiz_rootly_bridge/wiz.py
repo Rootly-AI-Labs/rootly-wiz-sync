@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Any
 from urllib import error, parse, request
@@ -100,6 +101,7 @@ def run_wiz_query(
             retry_max_secs=cfg.wiz_retry_max_secs,
             retry_on_statuses={429, 500, 502, 503, 504},
             throttle_per_sec=cfg.wiz_max_rps,
+            throttle_key="wiz",
             request_label="wiz graphql request",
         )
     except HttpRequestError as exc:
@@ -115,6 +117,13 @@ def run_wiz_query(
                     ]
                 },
             )
+        if exc.status_code == 400 and exc.body:
+            try:
+                error_payload = json.loads(exc.body)
+            except json.JSONDecodeError:
+                error_payload = None
+            if isinstance(error_payload, dict) and error_payload.get("errors"):
+                return "", error_payload
         raise
 
     data = response.get("data")
@@ -164,6 +173,57 @@ def graphql_error_summary(payload: dict[str, Any]) -> str:
     return " | ".join(parts) if parts else json.dumps(payload, ensure_ascii=True)
 
 
+def disabled_optional_variables(payload: dict[str, Any]) -> set[str]:
+    disabled: set[str] = set()
+    for err in graphql_errors(payload):
+        message = str(err.get("message", "")).lower()
+        if "orderby" in message and any(
+            token in message for token in ("variable", "argument", "unknown", "invalid type")
+        ):
+            disabled.add("orderBy")
+        if "filterby" in message and any(
+            token in message for token in ("variable", "argument", "unknown", "invalid type")
+        ):
+            disabled.add("filterBy")
+    return disabled
+
+
+def strip_optional_variable(query_text: str, variable_name: str) -> str:
+    query_text = re.sub(
+        rf"\(\s*\${variable_name}:\s*[^,)]+\s*,\s*",
+        "(",
+        query_text,
+        count=1,
+    )
+    query_text = re.sub(
+        rf",\s*\${variable_name}:\s*[^,)]+",
+        "",
+        query_text,
+        count=1,
+    )
+    query_text = re.sub(
+        rf"{variable_name}:\s*\${variable_name}\s*,\s*",
+        "",
+        query_text,
+        count=1,
+    )
+    query_text = re.sub(
+        rf",\s*{variable_name}:\s*\${variable_name}",
+        "",
+        query_text,
+        count=1,
+    )
+    return query_text
+
+
+def query_text_with_disabled_optionals(query_text: str, disabled_variables: set[str]) -> str:
+    updated = query_text
+    for variable_name in ("filterBy", "orderBy"):
+        if variable_name in disabled_variables:
+            updated = strip_optional_variable(updated, variable_name)
+    return updated
+
+
 def is_scope_unauthorized_error(payload: dict[str, Any]) -> bool:
     for err in graphql_errors(payload):
         code = str((err.get("extensions") or {}).get("code", "")).upper()
@@ -186,7 +246,14 @@ def is_token_expired_error(payload: dict[str, Any]) -> bool:
     return False
 
 
-def fetch_wiz_items(cfg: Config, token: str) -> list[dict[str, Any]]:
+def fetch_wiz_items(
+    cfg: Config,
+    token: str,
+    *,
+    wiz_filter_by: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    if wiz_filter_by is None:
+        wiz_filter_by = cfg.wiz_filter_by
     last_error = "Unknown query failure."
     current_token = token
     token_refresh_attempts = 0
@@ -194,18 +261,20 @@ def fetch_wiz_items(cfg: Config, token: str) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         after: str | None = None
         connection_name: str | None = None
+        disabled_optionals: set[str] = set()
         for _ in range(cfg.wiz_max_pages):
             result_name = ""
             payload: dict[str, Any] = {}
             page_retry_attempt = 0
             while True:
                 variables: dict[str, Any] = {"first": cfg.wiz_page_size, "after": after}
-                if cfg.wiz_filter_by is not None:
-                    variables["filterBy"] = cfg.wiz_filter_by
-                if cfg.wiz_order_by is not None:
+                if wiz_filter_by is not None and "filterBy" not in disabled_optionals:
+                    variables["filterBy"] = wiz_filter_by
+                if cfg.wiz_order_by is not None and "orderBy" not in disabled_optionals:
                     variables["orderBy"] = cfg.wiz_order_by
+                effective_query_text = query_text_with_disabled_optionals(query_text, disabled_optionals)
 
-                result_name, payload = run_wiz_query(cfg, current_token, query_text, variables)
+                result_name, payload = run_wiz_query(cfg, current_token, effective_query_text, variables)
                 if result_name:
                     break
                 if is_token_expired_error(payload) and token_refresh_attempts < cfg.wiz_token_refresh_retries:
@@ -215,6 +284,15 @@ def fetch_wiz_items(cfg: Config, token: str) -> list[dict[str, Any]]:
                         f"(attempt {token_refresh_attempts}/{cfg.wiz_token_refresh_retries})"
                     )
                     current_token = fetch_wiz_token(cfg)
+                    continue
+                newly_disabled = disabled_optional_variables(payload) - disabled_optionals
+                if newly_disabled:
+                    disabled_optionals.update(newly_disabled)
+                    disabled_list = ", ".join(sorted(newly_disabled))
+                    print(
+                        f"[{now_iso()}] graphql rejected optional variables ({disabled_list}); "
+                        "retrying without them."
+                    )
                     continue
                 if is_scope_unauthorized_error(payload):
                     error_text = graphql_error_summary(payload)
@@ -257,4 +335,3 @@ def fetch_wiz_items(cfg: Config, token: str) -> list[dict[str, Any]]:
             return items
 
     raise RuntimeError(f"All GraphQL query candidates failed. Last error: {last_error}")
-
