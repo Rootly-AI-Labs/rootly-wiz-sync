@@ -9,7 +9,7 @@ from urllib import error, request
 
 from .utils import now_iso
 
-_LAST_WIZ_CALL_MONO = 0.0
+_LAST_REQUEST_MONO_BY_KEY: dict[str, float] = {}
 
 
 class HttpRequestError(RuntimeError):
@@ -19,16 +19,20 @@ class HttpRequestError(RuntimeError):
         self.body = body
 
 
-def throttle_wiz_requests(max_rps: int) -> None:
-    global _LAST_WIZ_CALL_MONO
+def throttle_requests(throttle_key: str, max_rps: int) -> None:
     if max_rps <= 0:
         return
     min_interval = 1.0 / float(max_rps)
     now = time.monotonic()
-    wait = min_interval - (now - _LAST_WIZ_CALL_MONO)
+    last_call = _LAST_REQUEST_MONO_BY_KEY.get(throttle_key, 0.0)
+    wait = min_interval - (now - last_call)
     if wait > 0:
         time.sleep(wait)
-    _LAST_WIZ_CALL_MONO = time.monotonic()
+    _LAST_REQUEST_MONO_BY_KEY[throttle_key] = time.monotonic()
+
+
+def throttle_wiz_requests(max_rps: int) -> None:
+    throttle_requests("wiz", max_rps)
 
 
 def retry_after_seconds(header_value: str | None) -> float | None:
@@ -52,13 +56,14 @@ def http_json(
     retry_max_secs: float = 30.0,
     retry_on_statuses: set[int] | None = None,
     throttle_per_sec: int = 0,
+    throttle_key: str = "request",
     request_label: str = "request",
 ) -> dict[str, Any]:
     retry_on_statuses = retry_on_statuses or set()
     attempt = 0
     while True:
         if throttle_per_sec > 0:
-            throttle_wiz_requests(throttle_per_sec)
+            throttle_requests(throttle_key, throttle_per_sec)
         body = None
         if payload is not None:
             body = json.dumps(payload).encode("utf-8")
@@ -102,4 +107,3 @@ def http_json(
                 time.sleep(delay)
                 continue
             raise HttpRequestError(f"Request failed for {url}: {exc}") from exc
-
