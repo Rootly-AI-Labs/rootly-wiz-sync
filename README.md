@@ -28,13 +28,11 @@
 python3 wiz_to_rootly.py bootstrap-rootly --rootly-api-token <rootly-api-token> --write-env
 ```
 
-Useful options:
+Optional flags:
 
-```bash
-python3 wiz_to_rootly.py bootstrap-rootly --dry-run
-python3 wiz_to_rootly.py bootstrap-rootly --rootly-alert-source-name "Wiz Findings"
-python3 wiz_to_rootly.py bootstrap-rootly --rootly-alert-source-id src_123
-```
+- `--dry-run` previews the Rootly setup without changing anything.
+- `--rootly-alert-source-name <source-name>` targets a source name.
+- `--rootly-alert-source-id <source-id>` targets an existing source directly.
 
 ### Validate
 
