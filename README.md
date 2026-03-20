@@ -1,10 +1,14 @@
 <p align="center">
-  <img src="assets/wiz-rootly-banner.svg" alt="Wiz Rootly Sync banner" width="100%" />
+  <img src="assets/wiz-rootly-banner.png" alt="Wiz Rootly Sync banner" width="100%" />
 </p>
 
 # Wiz Rootly Sync
 
 `wiz_to_rootly.py` pulls Wiz issues into Rootly and keeps the same alert updated through open and resolved states. It follows the WIN daily pull model, prefers `issuesV2`, requires `read:issues`, and switches to delta pulls after the first successful sync.
+
+<p align="center">
+  <img src="submission-assets/screenshots/rootly-alert-detail.png" alt="Rootly alert created from a Wiz issue" width="100%" />
+</p>
 
 ## Quickstart
 
@@ -78,6 +82,14 @@ If you do not want to use `bootstrap-rootly`, create a Generic Webhook source in
 - `ROOTLY_WEBHOOK_URL`
 - optional `ROOTLY_WEBHOOK_AUTH_HEADER`
 - optional `ROOTLY_WEBHOOK_AUTH_VALUE`
+
+## Troubleshooting
+
+- `validate` fails on Wiz credentials: confirm `WIZ_CLIENT_ID`, `WIZ_CLIENT_SECRET`, and that the service account has `read:issues`.
+- Wiz GraphQL returns tenant schema errors: the sync already falls back across compatible query shapes, so rerun after `validate` and check the printed error if it still fails.
+- Rootly webhook returns `429`: rerun `sync`; the integration retries throttled webhook requests and deduplicates alerts on retry.
+- Nothing appears in Rootly: run `python3 wiz_to_rootly.py sync --dry-run` first, then confirm the alert source exists and the webhook settings in `.env.wiz-rootly` match the Rootly source.
+- Too many alerts on first live run: narrow the sync with `WIZ_ONLY_SEVERITIES=critical,high` before the first production run.
 
 ## Notes
 
