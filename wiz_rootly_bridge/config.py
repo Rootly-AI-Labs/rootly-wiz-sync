@@ -19,7 +19,6 @@ from .constants import (
     DEFAULT_QUERY_ISSUES_V2_COMPAT,
     DEFAULT_RESOLVED_STATUSES,
     DEFAULT_WIZ_MAX_RPS,
-    DEFAULT_WIZ_ORDER_BY,
 )
 
 
@@ -270,7 +269,7 @@ class Config:
             resolved_statuses=resolved_statuses,
             dry_run=dry_run,
             wiz_filter_by=wiz_filter_by,
-            wiz_order_by=env_json_dict("WIZ_ORDER_BY_JSON") or DEFAULT_WIZ_ORDER_BY,
+            wiz_order_by=env_json_dict("WIZ_ORDER_BY_JSON"),
             query_candidates=query_candidates,
         )
 

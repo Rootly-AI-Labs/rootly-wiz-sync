@@ -4,13 +4,12 @@ DEFAULT_AUTH_URL = "https://auth.app.wiz.io/oauth/token"
 DEFAULT_API_URL = "https://api.us17.app.wiz.io/graphql"
 DEFAULT_WIZ_MAX_RPS = 2
 DEFAULT_POLL_INTERVAL_SECS = 86400
-DEFAULT_WIZ_ORDER_BY = {"field": "UPDATED_AT", "direction": "DESC"}
 DEFAULT_ACTIVE_STATUSES = ("OPEN", "IN_PROGRESS")
 DEFAULT_RESOLVED_STATUSES = {"resolved", "closed", "rejected"}
 
 DEFAULT_QUERY_ISSUES = """
-query IssuesTableRich($filterBy: IssueFilters, $first: Int, $after: String, $orderBy: IssueOrder) {
-  issues(filterBy: $filterBy, first: $first, after: $after, orderBy: $orderBy) {
+query IssuesTableRich($filterBy: IssueFilters, $first: Int, $after: String) {
+  issues(filterBy: $filterBy, first: $first, after: $after) {
     nodes {
       id
       type
@@ -66,8 +65,8 @@ query IssuesTableRich($filterBy: IssueFilters, $first: Int, $after: String, $ord
 """.strip()
 
 DEFAULT_QUERY_ISSUES_COMPAT = """
-query IssuesTableCompat($filterBy: IssueFilters, $first: Int, $after: String, $orderBy: IssueOrder) {
-  issues(filterBy: $filterBy, first: $first, after: $after, orderBy: $orderBy) {
+query IssuesTableCompat($filterBy: IssueFilters, $first: Int, $after: String) {
+  issues(filterBy: $filterBy, first: $first, after: $after) {
     nodes {
       id
       type
@@ -113,8 +112,8 @@ query IssuesTableCompat($filterBy: IssueFilters, $first: Int, $after: String, $o
 """.strip()
 
 DEFAULT_QUERY_ISSUES_V2 = """
-query PullIssuesV2Rich($first: Int!, $after: String, $filterBy: IssueFilters, $orderBy: IssueOrder) {
-  issuesV2(first: $first, after: $after, filterBy: $filterBy, orderBy: $orderBy) {
+query PullIssuesV2Rich($first: Int!, $after: String, $filterBy: IssueFilters) {
+  issuesV2(first: $first, after: $after, filterBy: $filterBy) {
     nodes {
       id
       type
@@ -192,8 +191,8 @@ query PullIssuesV2Rich($first: Int!, $after: String, $filterBy: IssueFilters, $o
 """.strip()
 
 DEFAULT_QUERY_ISSUES_V2_COMPAT = """
-query PullIssuesV2Compat($first: Int!, $after: String, $filterBy: IssueFilters, $orderBy: IssueOrder) {
-  issuesV2(first: $first, after: $after, filterBy: $filterBy, orderBy: $orderBy) {
+query PullIssuesV2Compat($first: Int!, $after: String, $filterBy: IssueFilters) {
+  issuesV2(first: $first, after: $after, filterBy: $filterBy) {
     nodes {
       id
       type

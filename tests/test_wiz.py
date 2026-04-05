@@ -36,7 +36,7 @@ def build_config() -> Config:
         resolved_statuses={"resolved", "closed"},
         dry_run=True,
         wiz_filter_by=None,
-        wiz_order_by={"field": "UPDATED_AT", "direction": "DESC"},
+        wiz_order_by=None,
         query_candidates=["rich-query", "compat-query"],
     )
 
@@ -98,8 +98,26 @@ query IssuesTable($filterBy: IssueFilters, $first: Int, $after: String, $orderBy
 
     def test_fetch_wiz_items_retries_without_rejected_order_by_variable(self) -> None:
         cfg = build_config()
-        cfg.query_candidates = [DEFAULT_QUERY_ISSUES_COMPAT]
+        cfg.wiz_order_by = {"field": "UPDATED_AT", "direction": "DESC"}
+        cfg.query_candidates = [
+            """
+            query IssuesTableCompat($filterBy: IssueFilters, $first: Int, $after: String, $orderBy: IssueOrder) {
+              issues(filterBy: $filterBy, first: $first, after: $after, orderBy: $orderBy) {
+                nodes {
+                  id
+                  severity
+                  status
+                }
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+              }
+            }
+            """
+        ]
         seen_queries: list[str] = []
+        seen_variables: list[dict[str, object]] = []
         responses = [
             HttpRequestError(
                 "HTTP 400",
@@ -127,6 +145,7 @@ query IssuesTable($filterBy: IssueFilters, $first: Int, $after: String, $orderBy
 
         def fake_http_json(**kwargs: object) -> dict:
             seen_queries.append(str(kwargs["payload"]["query"]))
+            seen_variables.append(dict(kwargs["payload"]["variables"]))
             response = responses.pop(0)
             if isinstance(response, Exception):
                 raise response
@@ -139,6 +158,8 @@ query IssuesTable($filterBy: IssueFilters, $first: Int, $after: String, $orderBy
         self.assertEqual("issue-2", items[0]["id"])
         self.assertIn("orderBy", seen_queries[0])
         self.assertNotIn("orderBy", seen_queries[1])
+        self.assertIn("orderBy", seen_variables[0])
+        self.assertNotIn("orderBy", seen_variables[1])
 
     def test_fetch_wiz_items_uses_override_filter_by(self) -> None:
         cfg = build_config()

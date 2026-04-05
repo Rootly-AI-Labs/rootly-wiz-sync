@@ -46,7 +46,7 @@ def build_config(state_file: Path) -> Config:
         resolved_statuses={"resolved", "closed"},
         dry_run=False,
         wiz_filter_by=None,
-        wiz_order_by={"field": "UPDATED_AT", "direction": "DESC"},
+        wiz_order_by=None,
         query_candidates=["query"],
     )
 
@@ -200,6 +200,7 @@ class RunnerTests(unittest.TestCase):
             self.assertTrue(report.ok)
             self.assertIn("Next step: run `python3 wiz_to_rootly.py sync --dry-run`.", report.text)
             self.assertIn("Keyword filter: disabled", report.text)
+            self.assertIn('Default order: not set', report.text)
             self.assertIn('Default Wiz filter: {"status":["OPEN","IN_PROGRESS"]}', report.text)
 
     def test_build_setup_validation_report_flags_missing_values(self) -> None:

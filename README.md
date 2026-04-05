@@ -97,7 +97,6 @@ If you do not want to use `bootstrap-rootly`, create a Generic Webhook source in
 ## Troubleshooting
 
 - `validate` fails on Wiz credentials: confirm `WIZ_CLIENT_ID`, `WIZ_CLIENT_SECRET`, and that the service account has `read:issues`, `read:threat_issues`, `create:reports`, and `read:reports`.
-- Wiz GraphQL returns tenant schema errors: the sync already falls back across compatible query shapes, so rerun after `validate` and check the printed error if it still fails.
 - Wiz report creation fails on the first run: confirm the report scopes above and that `WIZ_API_URL` points at the correct tenant data center.
 - Rootly webhook returns `429`: rerun `sync`; the integration retries throttled webhook requests and deduplicates alerts on retry.
 - Nothing appears in Rootly: run `python3 wiz_to_rootly.py sync --dry-run` first, then confirm the alert source exists and the webhook settings in `.env.wiz-rootly` match the Rootly source.
@@ -111,4 +110,5 @@ If you do not want to use `bootstrap-rootly`, create a Generic Webhook source in
 - `WIZ_FULL_SYNC_STRATEGY=report` keeps the first run on the Reports API. Set `WIZ_FULL_SYNC_STRATEGY=api` only if you explicitly need to skip the report path.
 - `WIZ_RESOLVED_STATUSES=resolved,closed,rejected` controls which Wiz statuses resolve Rootly alerts.
 - On first sight, already-resolved issues are stored locally but not forwarded.
+- `WIZ_ORDER_BY_JSON` is optional; leave it unset unless you specifically need a custom Wiz sort order.
 - Use `--env-file /path/to/custom.env` if you want a different env file.

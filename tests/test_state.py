@@ -41,7 +41,7 @@ def build_config(state_file: Path) -> Config:
         resolved_statuses={"resolved", "closed"},
         dry_run=True,
         wiz_filter_by=None,
-        wiz_order_by={"field": "UPDATED_AT", "direction": "DESC"},
+        wiz_order_by=None,
         query_candidates=["query"],
     )
 

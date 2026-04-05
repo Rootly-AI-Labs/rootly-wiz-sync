@@ -41,14 +41,34 @@ class SetupValidationReport:
 def run_once(cfg: Config) -> None:
     run_started_at = now_iso()
     metadata, state = load_state_data(cfg.state_file)
+    last_successful_run_at = metadata.get("last_successful_run_at", "").strip()
+    sync_mode = "incremental" if last_successful_run_at else "initial"
+    print(
+        f"[{now_iso()}] starting Wiz sync mode={sync_mode} dry_run={str(cfg.dry_run).lower()} "
+        f"state_records={len(state)} state_file={cfg.state_file}"
+    )
+    if last_successful_run_at:
+        print(f"[{now_iso()}] using incremental cursor statusChangedAt.after={last_successful_run_at}")
+    else:
+        print(
+            f"[{now_iso()}] no previous successful sync metadata found; "
+            "using initial sync filters."
+        )
+    print(f"[{now_iso()}] requesting Wiz access token...")
     token = fetch_wiz_token(cfg)
+    print(f"[{now_iso()}] Wiz access token acquired.")
     wiz_filter_by = effective_wiz_filter_by(
         cfg.state_file,
         cfg.resolved_statuses,
         cfg.severity_filter,
         cfg.wiz_filter_by,
     )
+    print(
+        f"[{now_iso()}] querying Wiz issues with filter="
+        f"{json.dumps(wiz_filter_by, sort_keys=True)}"
+    )
     items = fetch_wiz_items(cfg, token, wiz_filter_by=wiz_filter_by)
+    print(f"[{now_iso()}] received {len(items)} Wiz items; evaluating matches and updates.")
     forwarded = 0
     matched = 0
     for item in items:
@@ -60,6 +80,9 @@ def run_once(cfg: Config) -> None:
         should_send = should_forward_event(cfg, item, previous)
         if should_send:
             payload = to_rootly_payload(cfg, item, event_id=event_id)
+            if forwarded == 0:
+                action = "printing" if cfg.dry_run else "sending"
+                print(f"[{now_iso()}] {action} Rootly alert payloads...")
             if cfg.dry_run:
                 print(json.dumps(payload, indent=2))
             else:
@@ -67,6 +90,8 @@ def run_once(cfg: Config) -> None:
                 state[event_id] = update_state_record(previous, item, was_forwarded=True)
                 save_state(cfg.state_file, state, metadata=metadata)
             forwarded += 1
+            if forwarded % 25 == 0:
+                print(f"[{now_iso()}] processed {forwarded} Rootly alert payloads so far.")
         if should_send and not cfg.dry_run:
             continue
         state[event_id] = update_state_record(previous, item, was_forwarded=should_send)
@@ -355,7 +380,7 @@ def build_setup_validation_report(env_path: Path | None) -> SetupValidationRepor
     if order_by_value:
         lines.append(f"[OK] Custom order: {order_by_value}")
     else:
-        lines.append('[OK] Default order: {"field":"UPDATED_AT","direction":"DESC"}')
+        lines.append("[OK] Default order: not set")
     if filter_by_value:
         lines.append(f"[OK] Custom Wiz filter: {filter_by_value}")
     else:

@@ -257,12 +257,18 @@ def fetch_wiz_items(
     last_error = "Unknown query failure."
     current_token = token
     token_refresh_attempts = 0
-    for query_text in cfg.query_candidates:
+    total_candidates = len(cfg.query_candidates)
+    for candidate_index, query_text in enumerate(cfg.query_candidates, start=1):
+        print(f"[{now_iso()}] trying Wiz query candidate {candidate_index}/{total_candidates}...")
         items: list[dict[str, Any]] = []
         after: str | None = None
         connection_name: str | None = None
         disabled_optionals: set[str] = set()
-        for _ in range(cfg.wiz_max_pages):
+        for page_index in range(cfg.wiz_max_pages):
+            print(
+                f"[{now_iso()}] requesting Wiz page {page_index + 1}/{cfg.wiz_max_pages} "
+                f"for query candidate {candidate_index}/{total_candidates}..."
+            )
             result_name = ""
             payload: dict[str, Any] = {}
             page_retry_attempt = 0
@@ -327,8 +333,18 @@ def fetch_wiz_items(
             page_info = connection.get("pageInfo") or {}
             has_next = bool(page_info.get("hasNextPage"))
             after = page_info.get("endCursor")
+            print(
+                f"[{now_iso()}] Wiz page {page_index + 1} returned {len(nodes)} items "
+                f"(accumulated={len(items)}, has_next={str(has_next).lower()})."
+            )
             if not has_next or not after:
                 break
+
+        if connection_name is None:
+            print(
+                f"[{now_iso()}] Wiz query candidate {candidate_index}/{total_candidates} "
+                f"did not succeed; last_error={last_error}"
+            )
 
         # Return if query shape is valid, even when there are zero matches.
         if connection_name is not None:
