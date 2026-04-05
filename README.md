@@ -6,19 +6,28 @@
 
 `wiz_to_rootly.py` pulls Wiz issues into Rootly and keeps the same alert updated through open and resolved states. It follows the WIN pull model: first run uses an Issues Report for the full sync, and later runs switch to `issuesV2` delta pulls after the first successful sync.
 
-<p align="center">
-  <img src="submission-assets/screenshots/rootly-alert-detail.png" alt="Rootly alert created from a Wiz issue" width="100%" />
-</p>
-
 ## Quickstart
 
 1. Copy `.env.wiz-rootly.example` to `.env.wiz-rootly`.
 2. Add `WIZ_CLIENT_ID` and `WIZ_CLIENT_SECRET`.
 3. Run `python3 wiz_to_rootly.py bootstrap-rootly --rootly-api-token <rootly-api-token> --write-env`.
-4. Run `python3 wiz_to_rootly.py validate`.
-5. Run `python3 wiz_to_rootly.py sync --dry-run`.
-6. Run `python3 wiz_to_rootly.py sync`.
-7. Schedule `python3 wiz_to_rootly.py sync` once per day.
+
+## Verify
+
+```bash
+python3 wiz_to_rootly.py validate
+python3 wiz_to_rootly.py sync --dry-run
+```
+
+## Go Live
+
+```bash
+python3 wiz_to_rootly.py sync
+```
+
+## Production
+
+Schedule `python3 wiz_to_rootly.py sync` once per day.
 
 `bootstrap-rootly` is the default setup path. It creates or updates the Rootly Generic Webhook source, configures dedupe and auto-resolution, and writes the webhook settings into `.env.wiz-rootly`.
 
