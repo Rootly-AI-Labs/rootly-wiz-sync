@@ -418,11 +418,11 @@ def build_setup_validation_report(env_path: Path | None) -> SetupValidationRepor
         missing_rootly_webhook = not has_rootly_webhook_url
         if missing_rootly_webhook and not missing_wiz_credentials:
             lines.append(
-                "Next step: run `python3 wiz_to_rootly.py bootstrap-rootly --rootly-api-token <rootly-api-token> --write-env`, then rerun `python3 wiz_to_rootly.py validate`."
+                "Next step: set `ROOTLY_API_TOKEN`, run `python3 wiz_to_rootly.py bootstrap-rootly --write-env`, then rerun `python3 wiz_to_rootly.py validate`."
             )
         elif missing_rootly_webhook:
             lines.append(
-                "Next step: fill in `WIZ_CLIENT_ID` and `WIZ_CLIENT_SECRET`, then run `python3 wiz_to_rootly.py bootstrap-rootly --rootly-api-token <rootly-api-token> --write-env`, and rerun `python3 wiz_to_rootly.py validate`."
+                "Next step: fill in `WIZ_CLIENT_ID` and `WIZ_CLIENT_SECRET`, set `ROOTLY_API_TOKEN`, run `python3 wiz_to_rootly.py bootstrap-rootly --write-env`, and rerun `python3 wiz_to_rootly.py validate`."
             )
         else:
             lines.append(

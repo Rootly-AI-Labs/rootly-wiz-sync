@@ -10,7 +10,7 @@
 
 1. Copy `.env.wiz-rootly.example` to `.env.wiz-rootly`.
 2. Add `WIZ_CLIENT_ID` and `WIZ_CLIENT_SECRET`.
-3. Run `python3 wiz_to_rootly.py bootstrap-rootly --rootly-api-token <rootly-api-token> --write-env`.
+3. Set `ROOTLY_API_TOKEN` in your environment or secret manager, then run `python3 wiz_to_rootly.py bootstrap-rootly --write-env`.
 
 ## Verify
 
@@ -29,7 +29,7 @@ python3 wiz_to_rootly.py sync
 
 Schedule `python3 wiz_to_rootly.py sync` once per day.
 
-`bootstrap-rootly` is the default setup path. It creates or updates the Rootly Generic Webhook source, configures dedupe and auto-resolution, and writes the webhook settings into `.env.wiz-rootly`.
+`bootstrap-rootly` is the default setup path. It uses `ROOTLY_API_TOKEN` from your environment to create or update the Rootly Generic Webhook source, configures dedupe and auto-resolution, and writes the webhook settings into `.env.wiz-rootly`.
 
 `.env.wiz-rootly` is auto-loaded from the repo root, so you do not need to `source` it manually.
 
@@ -38,8 +38,10 @@ Schedule `python3 wiz_to_rootly.py sync` once per day.
 ### Bootstrap Rootly
 
 ```bash
-python3 wiz_to_rootly.py bootstrap-rootly --rootly-api-token <rootly-api-token> --write-env
+python3 wiz_to_rootly.py bootstrap-rootly --write-env
 ```
+
+Set `ROOTLY_API_TOKEN` in your environment before running this command.
 
 Optional flags:
 
