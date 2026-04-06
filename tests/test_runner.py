@@ -11,6 +11,7 @@ from wiz_rootly_bridge.runner import (
     build_setup_validation_report,
     env_updates_for_bootstrap_result,
     parse_args,
+    main,
     resolve_env_target_path,
     run_once,
     write_env_updates,
@@ -24,6 +25,7 @@ def build_config(state_file: Path) -> Config:
         wiz_client_secret="client-secret",
         wiz_auth_url="https://auth.app.wiz.io/oauth/token",
         wiz_api_url="https://api.us17.app.wiz.io/graphql",
+        wiz_user_agent="Rootly-Wiz-Sync-1.0",
         wiz_page_size=50,
         wiz_max_pages=5,
         wiz_max_rps=3,
@@ -58,6 +60,36 @@ class RunnerTests(unittest.TestCase):
 
         self.assertEqual(args.command, "sync")
         self.assertFalse(args.once)
+
+    def test_main_prints_clean_sync_error_and_exits(self) -> None:
+        args = SimpleNamespace(
+            command="sync",
+            once=False,
+            dry_run=False,
+            env_file="",
+            rootly_api_token="",
+            rootly_api_url="",
+            rootly_alert_source_name="",
+            rootly_alert_source_id="",
+            rootly_owner_group_id=[],
+            write_env=False,
+        )
+        cfg = build_config(Path("state.json"))
+
+        with patch("wiz_rootly_bridge.runner.parse_args", return_value=args), patch(
+            "wiz_rootly_bridge.runner.load_runtime_env", return_value=None
+        ), patch("wiz_rootly_bridge.runner.apply_cli_env_overrides"), patch(
+            "wiz_rootly_bridge.runner.Config.from_env", return_value=cfg
+        ), patch("wiz_rootly_bridge.runner.run_once", side_effect=RuntimeError("bad credentials")), patch(
+            "builtins.print"
+        ) as mock_print:
+            with self.assertRaises(SystemExit) as ctx:
+                main()
+
+        self.assertEqual(1, ctx.exception.code)
+        mock_print.assert_any_call(unittest.mock.ANY)
+        printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+        self.assertIn("sync failed: bad credentials", printed)
 
     def test_run_once_forwards_open_and_resolution_events(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

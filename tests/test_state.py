@@ -19,6 +19,7 @@ def build_config(state_file: Path) -> Config:
         wiz_client_secret="client-secret",
         wiz_auth_url="https://auth.app.wiz.io/oauth/token",
         wiz_api_url="https://api.us17.app.wiz.io/graphql",
+        wiz_user_agent="Rootly-Wiz-Sync-1.0",
         wiz_page_size=50,
         wiz_max_pages=5,
         wiz_max_rps=3,

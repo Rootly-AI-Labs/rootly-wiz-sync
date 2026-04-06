@@ -159,6 +159,7 @@ class Config:
     wiz_client_secret: str
     wiz_auth_url: str
     wiz_api_url: str
+    wiz_user_agent: str
     wiz_page_size: int
     wiz_max_pages: int
     wiz_max_rps: int
@@ -247,6 +248,7 @@ class Config:
             wiz_client_secret=wiz_client_secret,
             wiz_auth_url=os.getenv("WIZ_AUTH_URL", DEFAULT_AUTH_URL).strip(),
             wiz_api_url=os.getenv("WIZ_API_URL", DEFAULT_API_URL).strip(),
+            wiz_user_agent=os.getenv("WIZ_USER_AGENT", "Rootly-Wiz-Sync-1.0").strip(),
             wiz_page_size=env_int("WIZ_PAGE_SIZE", 50),
             wiz_max_pages=env_int("WIZ_MAX_PAGES", 5),
             wiz_max_rps=env_int("WIZ_MAX_RPS", DEFAULT_WIZ_MAX_RPS),

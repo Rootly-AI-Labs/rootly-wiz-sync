@@ -461,6 +461,10 @@ def main() -> None:
         return
     cfg = Config.from_env(dry_run=args.dry_run)
     if args.command == "sync" or args.once:
-        run_once(cfg)
+        try:
+            run_once(cfg)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print(f"[{now_iso()}] sync failed: {exc}")
+            raise SystemExit(1) from None
         return
     run_loop(cfg)

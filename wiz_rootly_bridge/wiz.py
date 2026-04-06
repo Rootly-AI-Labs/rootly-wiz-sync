@@ -29,7 +29,7 @@ def fetch_wiz_token(cfg: Config) -> str:
             cfg.wiz_auth_url,
             data=form_data,
             method="POST",
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": cfg.wiz_user_agent},
         )
         try:
             with request.urlopen(req, timeout=cfg.request_timeout_secs) as response:
@@ -52,6 +52,11 @@ def fetch_wiz_token(cfg: Config) -> str:
                 )
                 time.sleep(delay)
                 continue
+            if exc.code == 401:
+                raise RuntimeError(
+                    "Wiz authentication failed (HTTP 401 Unauthorized). "
+                    "Check WIZ_CLIENT_ID, WIZ_CLIENT_SECRET, WIZ_AUTH_URL, and WIZ_API_URL."
+                ) from exc
             raise RuntimeError(f"Token request failed (HTTP {exc.code}): {raw}") from exc
         except error.URLError as exc:
             if attempt < cfg.wiz_max_retries:
@@ -63,7 +68,10 @@ def fetch_wiz_token(cfg: Config) -> str:
                 )
                 time.sleep(delay)
                 continue
-            raise RuntimeError(f"Token request failed: {exc}") from exc
+            raise RuntimeError(
+                "Wiz token request failed due to a network error. "
+                f"Check connectivity to {cfg.wiz_auth_url}. Details: {exc}"
+            ) from exc
     token_payload = json.loads(raw)
     token = token_payload.get("access_token")
     if not token:
@@ -94,6 +102,7 @@ def run_wiz_query(
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {token}",
+                "User-Agent": cfg.wiz_user_agent,
             },
             timeout_secs=cfg.request_timeout_secs,
             max_retries=cfg.wiz_max_retries,

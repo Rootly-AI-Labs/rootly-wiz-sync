@@ -1,11 +1,13 @@
+import io
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib import error
 
 from wiz_rootly_bridge.config import Config
 from wiz_rootly_bridge.constants import DEFAULT_QUERY_ISSUES_COMPAT
 from wiz_rootly_bridge.http_client import HttpRequestError
-from wiz_rootly_bridge.wiz import fetch_wiz_items, query_text_with_disabled_optionals
+from wiz_rootly_bridge.wiz import fetch_wiz_items, fetch_wiz_token, query_text_with_disabled_optionals
 
 
 def build_config() -> Config:
@@ -14,6 +16,7 @@ def build_config() -> Config:
         wiz_client_secret="client-secret",
         wiz_auth_url="https://auth.app.wiz.io/oauth/token",
         wiz_api_url="https://api.us17.app.wiz.io/graphql",
+        wiz_user_agent="Rootly-Wiz-Sync-1.0",
         wiz_page_size=50,
         wiz_max_pages=5,
         wiz_max_rps=3,
@@ -56,6 +59,47 @@ query IssuesTable($filterBy: IssueFilters, $first: Int, $after: String, $orderBy
         self.assertNotIn("$filterBy", updated)
         self.assertNotIn("$orderBy", updated)
         self.assertIn("issues(first: $first, after: $after)", updated)
+
+    def test_fetch_wiz_token_reports_actionable_401_error(self) -> None:
+        cfg = build_config()
+        http_error = error.HTTPError(
+            cfg.wiz_auth_url,
+            401,
+            "Unauthorized",
+            hdrs=None,
+            fp=io.BytesIO(b"Unauthorized"),
+        )
+
+        with patch("wiz_rootly_bridge.wiz.request.urlopen", side_effect=http_error):
+            with self.assertRaises(RuntimeError) as ctx:
+                fetch_wiz_token(cfg)
+
+        self.assertEqual(
+            "Wiz authentication failed (HTTP 401 Unauthorized). Check WIZ_CLIENT_ID, WIZ_CLIENT_SECRET, WIZ_AUTH_URL, and WIZ_API_URL.",
+            str(ctx.exception),
+        )
+
+    def test_fetch_wiz_token_sets_user_agent_header(self) -> None:
+        cfg = build_config()
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self) -> bytes:
+                return b'{"access_token":"wiz-token"}'
+
+        def fake_urlopen(req, timeout=0):
+            self.assertEqual(cfg.wiz_user_agent, req.headers.get("User-agent"))
+            return FakeResponse()
+
+        with patch("wiz_rootly_bridge.wiz.request.urlopen", side_effect=fake_urlopen):
+            token = fetch_wiz_token(cfg)
+
+        self.assertEqual("wiz-token", token)
 
     def test_fetch_wiz_items_falls_back_after_graphql_validation_http_400(self) -> None:
         cfg = build_config()
@@ -144,6 +188,7 @@ query IssuesTable($filterBy: IssueFilters, $first: Int, $after: String, $orderBy
         ]
 
         def fake_http_json(**kwargs: object) -> dict:
+            self.assertEqual(cfg.wiz_user_agent, kwargs["headers"]["User-Agent"])
             seen_queries.append(str(kwargs["payload"]["query"]))
             seen_variables.append(dict(kwargs["payload"]["variables"]))
             response = responses.pop(0)
