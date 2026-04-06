@@ -31,6 +31,8 @@ Schedule `python3 wiz_to_rootly.py sync` once per day.
 
 `bootstrap-rootly` is the default setup path. It uses `ROOTLY_API_TOKEN` from your environment to create or update the Rootly Generic Webhook source, configures dedupe and auto-resolution, and writes the webhook settings into `.env.wiz-rootly`.
 
+If you do not want to use `bootstrap-rootly`, you can create the Generic Webhook source directly in Rootly and copy the webhook values into `.env.wiz-rootly` yourself. In that manual setup path, `ROOTLY_API_TOKEN` is not required.
+
 `.env.wiz-rootly` is auto-loaded from the repo root, so you do not need to `source` it manually.
 
 ## Commands
@@ -90,11 +92,15 @@ This sync delivers alerts into Rootly. Routing, paging, and incident creation st
 
 ## Manual Rootly Setup
 
-If you do not want to use `bootstrap-rootly`, create a Generic Webhook source in Rootly and set:
+You do not need `bootstrap-rootly` if you prefer to create the Rootly Generic Webhook source yourself in the Rootly UI. In that case, copy the webhook details from Rootly into `.env.wiz-rootly` and run the sync normally.
+
+Set:
 
 - `ROOTLY_WEBHOOK_URL`
 - optional `ROOTLY_WEBHOOK_AUTH_HEADER`
 - optional `ROOTLY_WEBHOOK_AUTH_VALUE`
+
+`ROOTLY_API_TOKEN` is only needed for the bootstrap path. It is not required for normal sync runs or for manual webhook setup.
 
 ## Troubleshooting
 
